@@ -3,7 +3,6 @@
 // ============================================================
 
 const state = {
-  user: null,
   tasks: [],
   goals: [],
   events: [],
@@ -13,7 +12,6 @@ const state = {
   clientCategoryFilter: 'todas',
   currentView: 'hoje',
   modalType: 'tarefa',
-  isSignUpMode: false,
 };
 
 // ---------- helpers ----------
@@ -57,95 +55,13 @@ const STAGE_LABEL = {
 const STAGES_ORDER = ['contato', 'reuniao_agendada', 'proposta_enviada', 'fechado', 'perdido'];
 
 // ============================================================
-// AUTENTICAÇÃO
+// INICIALIZAÇÃO DO PAINEL
 // ============================================================
 
-async function checkSession() {
-  const { data } = await window.db.auth.getSession();
-  if (data.session) {
-    onAuthed(data.session.user);
-  } else {
-    showLogin();
-  }
-}
-
-function showLogin() {
-  $('#login-screen').style.display = 'flex';
-  $('#app-screen').style.display = 'none';
-}
-
-async function onAuthed(user) {
-  state.user = user;
-  $('#user-email').textContent = user.email;
-  $('#login-screen').style.display = 'none';
-  $('#app-screen').style.display = 'block';
+async function initApp() {
   await loadAll();
   renderAll();
 }
-
-function setLoginError(msg) {
-  $('#login-error').textContent = msg || '';
-}
-
-$('#login-toggle-btn').addEventListener('click', () => {
-  state.isSignUpMode = !state.isSignUpMode;
-  if (state.isSignUpMode) {
-    $('#login-subtitle').textContent = 'Crie seu acesso ao painel';
-    $('#login-submit-btn').textContent = 'Criar conta';
-    $('#login-toggle-text').textContent = 'Já tem conta?';
-    $('#login-toggle-btn').textContent = 'Entrar';
-  } else {
-    $('#login-subtitle').textContent = 'Entre para acessar suas tarefas, metas, agenda e clientes';
-    $('#login-submit-btn').textContent = 'Entrar';
-    $('#login-toggle-text').textContent = 'Ainda não tem conta?';
-    $('#login-toggle-btn').textContent = 'Criar conta';
-  }
-  setLoginError('');
-});
-
-$('#login-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  setLoginError('');
-  const email = $('#login-email').value.trim();
-  const password = $('#login-password').value;
-  const submitBtn = $('#login-submit-btn');
-  submitBtn.disabled = true;
-
-  try {
-    if (state.isSignUpMode) {
-      const { data, error } = await window.db.auth.signUp({ email, password });
-      if (error) throw error;
-      if (data.session) {
-        onAuthed(data.user);
-      } else {
-        setLoginError('Conta criada! Verifique seu e-mail para confirmar o acesso.');
-      }
-    } else {
-      const { data, error } = await window.db.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      onAuthed(data.user);
-    }
-  } catch (err) {
-    setLoginError(traduzErro(err.message));
-  } finally {
-    submitBtn.disabled = false;
-  }
-});
-
-function traduzErro(msg) {
-  if (!msg) return 'Ocorreu um erro. Tente novamente.';
-  if (msg.includes('Invalid login credentials')) return 'E-mail ou senha inválidos.';
-  if (msg.includes('User already registered')) return 'Este e-mail já tem uma conta. Tente entrar.';
-  if (msg.includes('Password should be at least')) return 'A senha precisa ter pelo menos 6 caracteres.';
-  return msg;
-}
-
-$('#logout-btn').addEventListener('click', async () => {
-  await window.db.auth.signOut();
-  state.user = null;
-  state.tasks = []; state.goals = []; state.events = []; state.clients = [];
-  showLogin();
-});
 
 // ============================================================
 // CARREGAMENTO DE DADOS
@@ -581,7 +497,6 @@ $('#entry-form').addEventListener('submit', async (e) => {
   try {
     if (state.modalType === 'tarefa') {
       const { error } = await window.db.from('tasks').insert({
-        user_id: state.user.id,
         title: $('#entry-title').value.trim(),
         description: $('#entry-desc').value.trim() || null,
         category,
@@ -591,7 +506,6 @@ $('#entry-form').addEventListener('submit', async (e) => {
       if (error) throw error;
     } else if (state.modalType === 'meta') {
       const { error } = await window.db.from('goals').insert({
-        user_id: state.user.id,
         title: $('#entry-title').value.trim(),
         description: $('#entry-desc').value.trim() || null,
         category,
@@ -601,7 +515,6 @@ $('#entry-form').addEventListener('submit', async (e) => {
       if (error) throw error;
     } else if (state.modalType === 'evento') {
       const { error } = await window.db.from('events').insert({
-        user_id: state.user.id,
         title: $('#entry-title').value.trim(),
         description: $('#entry-desc').value.trim() || null,
         category,
@@ -611,7 +524,6 @@ $('#entry-form').addEventListener('submit', async (e) => {
       if (error) throw error;
     } else if (state.modalType === 'cliente') {
       const { error } = await window.db.from('clients').insert({
-        user_id: state.user.id,
         name: $('#client-name').value.trim(),
         company: $('#client-company').value.trim() || null,
         phone: $('#client-phone').value.trim() || null,
@@ -637,4 +549,4 @@ $('#entry-form').addEventListener('submit', async (e) => {
 // INICIALIZAÇÃO
 // ============================================================
 
-checkSession();
+initApp();

@@ -14,32 +14,6 @@
 </head>
 <body>
 
-<!-- ===================== LOGIN ===================== -->
-<div id="login-screen">
-  <div class="login-card">
-    <h1>Meu Painel</h1>
-    <p class="sub" id="login-subtitle">Entre para acessar suas tarefas, metas, agenda e clientes</p>
-
-    <form id="login-form">
-      <div class="field">
-        <label for="login-email">E-mail</label>
-        <input type="email" id="login-email" required autocomplete="email" />
-      </div>
-      <div class="field">
-        <label for="login-password">Senha</label>
-        <input type="password" id="login-password" required autocomplete="current-password" minlength="6" />
-      </div>
-      <button type="submit" class="btn" id="login-submit-btn">Entrar</button>
-      <div class="login-error" id="login-error"></div>
-    </form>
-
-    <div class="login-toggle">
-      <span id="login-toggle-text">Ainda não tem conta?</span>
-      <button type="button" id="login-toggle-btn">Criar conta</button>
-    </div>
-  </div>
-</div>
-
 <!-- ===================== APP ===================== -->
 <div id="app-screen">
   <div class="shell">
@@ -57,10 +31,6 @@
       <button class="nav-tab" data-view="agenda">Agenda</button>
       <button class="nav-tab" data-view="clientes">Clientes</button>
 
-      <div class="sidebar-footer">
-        <div class="user-email" id="user-email">—</div>
-        <button class="btn btn-ghost btn-small" id="logout-btn" style="width:100%;">Sair</button>
-      </div>
     </nav>
 
     <!-- Main -->
