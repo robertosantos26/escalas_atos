@@ -9,7 +9,7 @@ create extension if not exists "pgcrypto";
 -- ---------- TASKS ----------
 create table if not exists public.tasks (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete set null,
   title text not null,
   description text,
   category text not null default 'pessoal' check (category in ('trabalho','pessoal')),
@@ -24,7 +24,7 @@ create table if not exists public.tasks (
 -- ---------- GOALS (metas / OKR simplificado) ----------
 create table if not exists public.goals (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete set null,
   title text not null,
   description text,
   category text not null default 'pessoal' check (category in ('trabalho','pessoal')),
@@ -39,7 +39,7 @@ create table if not exists public.goals (
 -- ---------- EVENTS (agenda) ----------
 create table if not exists public.events (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete set null,
   title text not null,
   description text,
   category text not null default 'pessoal' check (category in ('trabalho','pessoal')),
@@ -51,7 +51,7 @@ create table if not exists public.events (
 -- ---------- CLIENTS (carteira de clientes / pipeline comercial) ----------
 create table if not exists public.clients (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete set null,
   name text not null,
   company text,
   phone text,
@@ -61,9 +61,18 @@ create table if not exists public.clients (
   next_action text,
   next_action_date date,
   notes text,
+  category text not null default 'pessoal' check (category in ('trabalho','pessoal')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+
+-- ---------- ajustes para projetos que já tinham o schema com login ----------
+alter table public.tasks alter column user_id drop not null;
+alter table public.goals alter column user_id drop not null;
+alter table public.events alter column user_id drop not null;
+alter table public.clients alter column user_id drop not null;
+alter table public.clients add column if not exists category text not null default 'pessoal' check (category in ('trabalho','pessoal'));
 
 -- ---------- índices úteis ----------
 create index if not exists tasks_user_due_idx on public.tasks (user_id, due_date);
@@ -71,27 +80,32 @@ create index if not exists goals_user_status_idx on public.goals (user_id, statu
 create index if not exists events_user_date_idx on public.events (user_id, event_date);
 create index if not exists clients_user_stage_idx on public.clients (user_id, stage);
 
--- ---------- Row Level Security: cada usuário só vê/edita o que é seu ----------
+-- ---------- Acesso sem login: leitura e escrita com a anon key ----------
 alter table public.tasks enable row level security;
 alter table public.goals enable row level security;
 alter table public.events enable row level security;
 alter table public.clients enable row level security;
 
 drop policy if exists "tasks_owner" on public.tasks;
-create policy "tasks_owner" on public.tasks
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
 drop policy if exists "goals_owner" on public.goals;
-create policy "goals_owner" on public.goals
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
 drop policy if exists "events_owner" on public.events;
-create policy "events_owner" on public.events
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
 drop policy if exists "clients_owner" on public.clients;
-create policy "clients_owner" on public.clients
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "tasks_public_access" on public.tasks;
+create policy "tasks_public_access" on public.tasks
+  for all to anon using (true) with check (true);
+
+drop policy if exists "goals_public_access" on public.goals;
+create policy "goals_public_access" on public.goals
+  for all to anon using (true) with check (true);
+
+drop policy if exists "events_public_access" on public.events;
+create policy "events_public_access" on public.events
+  for all to anon using (true) with check (true);
+
+drop policy if exists "clients_public_access" on public.clients;
+create policy "clients_public_access" on public.clients
+  for all to anon using (true) with check (true);
 
 -- ---------- updated_at automático ----------
 create or replace function public.set_updated_at()

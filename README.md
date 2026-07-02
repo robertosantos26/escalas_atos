@@ -3,7 +3,7 @@
 Painel pessoal com **Tarefas** (matriz de prioridade), **Metas** (estilo OKR simplificado),
 **Agenda** e **Clientes** (pipeline comercial: Contato feito → Reunião agendada →
 Proposta enviada → Fechado/Perdido). Frontend em HTML/CSS/JS puro (sem build step),
-dados no **Supabase** (com login e Row Level Security), deploy estático na **Vercel**.
+dados no **Supabase** (acesso direto, sem tela de login), deploy estático na **Vercel**.
 
 ```
 organizador/
@@ -24,14 +24,9 @@ organizador/
 2. Espere o projeto provisionar (1–2 min).
 3. Vá em **SQL Editor** → **New query**, cole todo o conteúdo de
    `supabase/schema.sql` e clique em **Run**. Isso cria as tabelas
-   `tasks`, `goals`, `events`, `clients` já com Row Level Security
-   (cada usuário só vê os próprios dados).
-4. Vá em **Authentication → Providers** e confirme que **Email** está
-   habilitado (vem habilitado por padrão).
-   - Opcional, para testar rápido sem confirmar e-mail: em
-     **Authentication → Settings**, desative "Confirm email". Para uso
-     real, deixe ativado.
-5. Vá em **Project Settings → API** e copie:
+   `tasks`, `goals`, `events`, `clients` com políticas para o app funcionar
+   diretamente com a anon key, sem autenticação.
+4. Vá em **Project Settings → API** e copie:
    - **Project URL**
    - **anon public key**
 
@@ -46,8 +41,7 @@ window.APP_CONFIG = {
 };
 ```
 
-A `anon key` é feita para ser pública (fica exposta no navegador) — a
-segurança real vem das políticas de RLS já criadas pelo `schema.sql`.
+A `anon key` é feita para ser pública (fica exposta no navegador). Como o painel agora não tem login, proteja a URL/deploy se não quiser que terceiros acessem seus dados.
 
 ## 3. Testar localmente (opcional)
 
@@ -59,7 +53,7 @@ python3 -m http.server 8080
 # abra http://localhost:8080
 ```
 
-Crie sua conta na tela de login (e-mail + senha) e comece a usar.
+Abra o endereço local e comece a usar; o painel entra direto, sem login.
 
 ## 4. Subir para o GitHub
 
@@ -94,7 +88,7 @@ vercel --prod
 ```
 
 Pronto — sua URL `https://seu-projeto.vercel.app` já estará no ar,
-com login, tarefas, metas e agenda persistindo no Supabase.
+com tarefas, metas e agenda persistindo no Supabase, sem tela de login.
 
 ## Como usar
 

@@ -8,5 +8,5 @@ window.APP_CONFIG = {
 };
 
 // Nota: a "anon key" é pública por natureza (fica exposta no navegador).
-// A segurança dos seus dados vem das políticas de Row Level Security (RLS)
-// definidas em supabase/schema.sql — cada usuário só enxerga suas próprias linhas.
+// Como o app está sem login, quem tiver acesso à URL do painel e a estas
+// chaves poderá usar os dados. Proteja o deploy/URL se necessário.
