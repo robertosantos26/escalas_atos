@@ -274,7 +274,22 @@
       <div class="mark">E</div>
       <h1>Escalas</h1>
     </div>
-    <div class="user-pill" onclick="trocarUsuario()">👤 <span id="userNameLabel"></span></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+
+  <button
+    id="notificationButton"
+    class="notification-btn"
+    onclick="ativarNotificacoes()"
+    title="Ativar notificações"
+  >
+    🔔
+  </button>
+
+  <div class="user-pill" onclick="trocarUsuario()">
+    👤 <span id="userNameLabel"></span>
+  </div>
+
+</div>
   </header>
 
   <main>
