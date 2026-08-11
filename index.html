@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Escalas · Louvor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --ink:#141A2E;
+    --ink-light:#1D2540;
+    --card:#232B4A;
+    --card-hi:#2C355A;
+    --gold:#E3A857;
+    --gold-soft:#F0C888;
+    --parchment:#EDE7DC;
+    --muted:#8B92AC;
+    --sage:#5FA089;
+    --sage-dim:rgba(95,160,137,.16);
+    --wine:#C1616B;
+    --wine-dim:rgba(193,97,107,.16);
+    --sand:#C6A876;
+    --sand-dim:rgba(198,168,118,.16);
+    --radius:16px;
+    --radius-sm:10px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--parchment);
+    font-family:'Work Sans',sans-serif;
+    min-height:100vh;
+    padding-bottom:84px;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    letter-spacing:-.01em;
+  }
+  .app{max-width:520px;margin:0 auto;min-height:100vh;position:relative;}
+  header.top{
+    padding:28px 20px 18px;
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  header.top .brand{display:flex;align-items:center;gap:10px;}
+  header.top .mark{
+    width:34px;height:34px;border-radius:9px;
+    background:linear-gradient(135deg,var(--gold),var(--sand));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:700;color:var(--ink);font-size:16px;
+  }
+  header.top h1{font-size:19px;margin:0;color:var(--parchment);}
+  header.top .user-pill{
+    font-size:12.5px;color:var(--muted);
+    background:var(--card);
+    padding:7px 12px;border-radius:99px;
+    display:flex;align-items:center;gap:6px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.06);
+  }
+  main{padding:18px 18px 30px;}
+  .tab{display:none;animation:fade .25s ease;}
+  .tab.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+  .section-label{
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--sand);font-weight:600;margin:22px 0 10px;
+  }
+  .section-label:first-child{margin-top:0;}
+
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:16px 16px;
+    margin-bottom:10px;
+    border:1px solid rgba(255,255,255,.05);
+  }
+  .culto-card{display:flex;flex-direction:column;gap:10px;}
+  .culto-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .culto-date{
+    font-family:'Fraunces',serif;font-size:15px;color:var(--gold-soft);font-weight:600;
+  }
+  .culto-type{font-size:13.5px;color:var(--muted);margin-top:2px;}
+  .culto-time{
+    font-size:12px;color:var(--muted);background:var(--ink-light);
+    padding:4px 10px;border-radius:99px;white-space:nowrap;
+  }
+  .culto-obs{font-size:13px;color:var(--muted);line-height:1.4;}
+
+  .status-row{display:flex;gap:8px;margin-top:4px;}
+  .status-btn{
+    flex:1;padding:10px 6px;border-radius:var(--radius-sm);
+    border:1px solid rgba(255,255,255,.08);
+    background:var(--ink-light);color:var(--muted);
+    font-family:'Work Sans',sans-serif;font-size:12.5px;font-weight:600;
+    cursor:pointer;transition:.15s;text-align:center;
+  }
+  .status-btn.sim.active{background:var(--sage-dim);border-color:var(--sage);color:var(--sage);}
+  .status-btn.talvez.active{background:var(--sand-dim);border-color:var(--sand);color:var(--sand);}
+  .status-btn.nao.active{background:var(--wine-dim);border-color:var(--wine);color:var(--wine);}
+  .availability-label{
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;margin-top:2px;
+  }
+  .availability-summary{
+    display:flex;flex-wrap:wrap;gap:4px;align-items:center;
+    margin-top:2px;font-size:11.5px;color:var(--muted);
+  }
+  .availability-summary .summary-disponivel{color:var(--sage);}
+  .availability-summary .summary-talvez{color:var(--sand);}
+  .availability-summary .summary-nao{color:var(--muted);}
+
+  .escala-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;}
+  .escala-tag{
+    font-size:12px;background:var(--ink-light);color:var(--parchment);
+    padding:5px 10px;border-radius:99px;display:flex;align-items:center;gap:6px;
+  }
+  .escala-tag .fn{color:var(--gold-soft);font-weight:600;}
+  .escala-tag.mine{border:1px solid var(--gold);}
+  .escala-tag .rm{cursor:pointer;color:var(--wine);font-weight:700;margin-left:2px;}
+  .empty-note{font-size:12.5px;color:var(--muted);font-style:italic;}
+
+  .btn{
+    background:var(--gold);color:var(--ink);border:none;
+    padding:11px 16px;border-radius:var(--radius-sm);
+    font-family:'Work Sans',sans-serif;font-weight:700;font-size:13.5px;
+    cursor:pointer;
+  }
+  .btn.ghost{background:transparent;color:var(--gold);border:1px solid var(--gold);}
+  .btn.small{padding:7px 12px;font-size:12px;}
+  .btn.block{width:100%;}
+  .btn.danger{background:var(--wine);color:#fff;}
+
+  .fab{
+    position:fixed;bottom:96px;right:22px;
+    width:52px;height:52px;border-radius:50%;
+    background:var(--gold);color:var(--ink);border:none;
+    font-size:26px;font-weight:700;cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+    display:flex;align-items:center;justify-content:center;
+    z-index:20;
+    max-width:520px;
+  }
+
+  nav.bottom{
+    position:fixed;bottom:0;left:0;right:0;
+    background:var(--ink-light);
+    border-top:1px solid rgba(255,255,255,.06);
+    display:flex;justify-content:center;
+    z-index:30;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav.bottom .wrap{max-width:520px;width:100%;display:flex;}
+  nav.bottom button{
+    flex:1;background:none;border:none;color:var(--muted);
+    padding:12px 4px 10px;font-family:'Work Sans',sans-serif;font-size:11px;font-weight:600;
+    display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;
+  }
+  nav.bottom button .ic{font-size:19px;}
+  nav.bottom button.active{color:var(--gold);}
+
+  /* Login */
+  .login-screen{
+    min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:30px;text-align:center;
+  }
+  .login-screen .mark-big{
+    width:64px;height:64px;border-radius:18px;
+    background:linear-gradient(135deg,var(--gold),var(--sand));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:700;color:var(--ink);font-size:28px;
+    margin-bottom:18px;
+  }
+  .login-screen h1{font-size:24px;margin:0 0 6px;}
+  .login-screen p{color:var(--muted);font-size:14px;margin:0 0 26px;max-width:320px;}
+  .name-grid{display:flex;flex-direction:column;gap:8px;width:100%;max-width:340px;}
+  .name-btn{
+    background:var(--card);border:1px solid rgba(255,255,255,.06);
+    color:var(--parchment);padding:14px 16px;border-radius:var(--radius-sm);
+    font-size:15px;font-weight:600;text-align:left;cursor:pointer;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .name-btn .roles{font-size:11.5px;color:var(--muted);font-weight:400;}
+
+  /* Modal / form sheet */
+  .sheet-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.55);
+    display:none;align-items:flex-end;justify-content:center;z-index:50;
+  }
+  .sheet-overlay.show{display:flex;}
+  .sheet{
+    background:var(--ink-light);width:100%;max-width:520px;
+    border-radius:20px 20px 0 0;padding:22px 20px 30px;
+    max-height:82vh;overflow-y:auto;
+  }
+  .sheet h3{margin:0 0 16px;font-size:17px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600;}
+  .field input,.field select,.field textarea{
+    width:100%;background:var(--card);border:1px solid rgba(255,255,255,.08);
+    color:var(--parchment);padding:11px 12px;border-radius:var(--radius-sm);
+    font-family:'Work Sans',sans-serif;font-size:14px;
+  }
+  .field textarea{resize:vertical;min-height:60px;}
+  .sheet-actions{display:flex;gap:10px;margin-top:18px;}
+  .sheet-actions .btn{flex:1;}
+  .close-x{position:absolute;top:16px;right:18px;color:var(--muted);font-size:20px;cursor:pointer;background:none;border:none;}
+
+  /* Frequencia */
+  .freq-filters{display:flex;gap:8px;margin-bottom:16px;}
+  .freq-filters button{
+    flex:1;background:var(--card);border:1px solid rgba(255,255,255,.06);
+    color:var(--muted);padding:8px;border-radius:var(--radius-sm);font-size:12.5px;font-weight:600;cursor:pointer;
+  }
+  .freq-filters button.active{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+  .freq-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .freq-name{width:96px;font-size:13px;font-weight:600;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .freq-bar-track{flex:1;height:10px;background:var(--card);border-radius:99px;overflow:hidden;}
+  .freq-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--sage),var(--gold-soft));}
+  .freq-count{width:22px;text-align:right;font-size:13px;color:var(--gold-soft);font-weight:700;}
+
+  /* Admin escala builder */
+  .assign-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+  .assign-row:last-child{border-bottom:none;}
+  .assign-name{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .dot.disponivel{background:var(--sage);}
+  .dot.talvez{background:var(--sand);}
+  .dot.indisponivel{background:var(--wine);}
+  .dot.semresposta{background:var(--muted);}
+  .assign-controls{display:flex;gap:6px;align-items:center;}
+  .assign-controls select{
+    background:var(--card);border:1px solid rgba(255,255,255,.08);color:var(--parchment);
+    padding:6px 8px;border-radius:8px;font-size:12px;
+  }
+  .assign-controls button{
+    background:var(--gold);color:var(--ink);border:none;border-radius:8px;
+    width:28px;height:28px;font-weight:700;cursor:pointer;
+  }
+  .toast{
+    position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+    background:var(--gold);color:var(--ink);padding:10px 18px;border-radius:99px;
+    font-size:13px;font-weight:700;z-index:60;opacity:0;pointer-events:none;transition:.25s;
+  }
+  .toast.show{opacity:1;bottom:110px;}
+  .loading{text-align:center;color:var(--muted);padding:40px 0;font-size:13px;}
+  .culto-select-bar{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
+  .culto-select-bar button{
+    flex-shrink:0;background:var(--card);border:1px solid rgba(255,255,255,.06);
+    color:var(--muted);padding:9px 14px;border-radius:99px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+  }
+  .culto-select-bar button.active{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen" style="display:none;">
+  <div class="mark-big">E</div>
+  <h1>Escalas do Louvor</h1>
+  <p id="loginSubtitle">Toque no seu nome para entrar. Isso fica salvo neste aparelho.</p>
+  <div class="name-grid" id="nameGrid"></div>
+  <div style="margin-top:22px;">
+    <button class="btn ghost small" onclick="openAdminSetup()">Sou administrador(a) / cadastrar membro</button>
+  </div>
+</div>
+
+<div class="app" id="mainApp" style="display:none;">
+  <header class="top">
+    <div class="brand">
+      <div class="mark">E</div>
+      <h1>Escalas</h1>
+    </div>
+    <div class="user-pill" onclick="trocarUsuario()">👤 <span id="userNameLabel"></span></div>
+  </header>
+
+  <main>
+    <div class="tab active" id="tab-calendario">
+      <div class="section-label">Próximos cultos</div>
+      <div id="calendarioList" class="loading">Carregando…</div>
+    </div>
+
+    <div class="tab" id="tab-escala">
+      <div class="section-label">Escala</div>
+      <div id="culto-select-bar-escala" class="culto-select-bar"></div>
+      <div id="escalaContent" class="loading">Carregando…</div>
+    </div>
+
+    <div class="tab" id="tab-frequencia">
+      <div class="section-label">Frequência nas escalas</div>
+      <div class="freq-filters">
+        <button data-days="30" onclick="setFreqFilter(30)">30 dias</button>
+        <button data-days="90" class="active" onclick="setFreqFilter(90)">90 dias</button>
+        <button data-days="0" onclick="setFreqFilter(0)">Tudo</button>
+      </div>
+      <div id="freqList" class="loading">Carregando…</div>
+    </div>
+
+    <div class="tab" id="tab-admin">
+      <div class="section-label">Membros do grupo</div>
+      <div id="membrosList" class="loading">Carregando…</div>
+      <button class="btn block ghost" style="margin-top:14px;" onclick="openMembroForm()">+ Adicionar membro</button>
+    </div>
+  </main>
+
+  <button class="fab" id="fabAdd" onclick="handleFab()" style="display:none;">+</button>
+</div>
+
+<nav class="bottom">
+  <div class="wrap">
+    <button class="navbtn active" data-tab="calendario" onclick="switchTab('calendario')"><span class="ic">📅</span>Calendário</button>
+    <button class="navbtn" data-tab="escala" onclick="switchTab('escala')"><span class="ic">🎤</span>Escala</button>
+    <button class="navbtn" data-tab="frequencia" onclick="switchTab('frequencia')"><span class="ic">📊</span>Frequência</button>
+    <button class="navbtn" id="navAdmin" data-tab="admin" onclick="switchTab('admin')" style="display:none;"><span class="ic">⚙️</span>Admin</button>
+  </div>
+</nav>
+
+<div class="sheet-overlay" id="sheetOverlay">
+  <div class="sheet" id="sheetContent" style="position:relative;"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================
+// CONFIGURAÇÃO — preencha com os dados do seu projeto Supabase
+// (Project Settings → API no painel do Supabase)
+// ============================================
+const SUPABASE_URL = "https://lfvbvnoezbzfqmfsmxph.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmdmJ2bm9lemJ6ZnFtZnNteHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MjM1NzQsImV4cCI6MjA5ODQ5OTU3NH0.OaLgakfvAExAzsSJpLreh_0qNjEXrjDIrfdf08I77NI";
+const ADMIN_PIN = "atos1"; // troque por um PIN só seu
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const FUNCOES_PADRAO = ["Vocal","Violão","Guitarra","Baixo","Teclado","Bateria","Cajón","Ministração","Som","Projeção"];
+
+let state = {
+  usuario: null,
+  usuarios: [],
+  cultos: [],
+  disponibilidade: [],
+  escalas: [],
+  freqDays: 90,
+  escalaCultoId: null,
+};
+
+// ---------- INIT ----------
+async function init(){
+  const savedId = localStorage.getItem('escalas_usuario_id');
+  await loadAll();
+  if(savedId){
+    const u = state.usuarios.find(x=>x.id===savedId && x.ativo);
+    if(u){ state.usuario = u; showApp(); return; }
+  }
+  showLogin();
+}
+
+async function loadAll(){
+  const [u,c,d,e] = await Promise.all([
+    sb.from('usuarios').select('*').order('nome'),
+    sb.from('cultos').select('*').order('data'),
+    sb.from('disponibilidade').select('*'),
+    sb.from('escalas').select('*'),
+  ]);
+  state.usuarios = u.data || [];
+  state.cultos = c.data || [];
+  state.disponibilidade = d.data || [];
+  state.escalas = e.data || [];
+}
+
+function showLogin(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('mainApp').style.display='none';
+  const grid = document.getElementById('nameGrid');
+  const ativos = state.usuarios.filter(u=>u.ativo);
+  if(ativos.length===0){
+    document.getElementById('loginSubtitle').textContent = "Ainda não há membros cadastrados. Toque abaixo para começar como administrador(a).";
+    grid.innerHTML = '';
+    return;
+  }
+  grid.innerHTML = ativos.map(u=>`
+    <button class="name-btn" onclick="loginAs('${u.id}')">
+      <span>${u.nome}</span>
+      <span class="roles">${(u.funcoes||[]).join(', ')}</span>
+    </button>
+  `).join('');
+}
+
+function loginAs(id){
+  const u = state.usuarios.find(x=>x.id===id);
+  if(!u) return;
+  state.usuario = u;
+  localStorage.setItem('escalas_usuario_id', id);
+  showApp();
+}
+
+function trocarUsuario(){
+  if(!confirm("Sair e escolher outro nome neste aparelho?")) return;
+  localStorage.removeItem('escalas_usuario_id');
+  state.usuario = null;
+  showLogin();
+}
+
+function showApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  document.getElementById('userNameLabel').textContent = state.usuario.nome;
+  document.getElementById('navAdmin').style.display = state.usuario.admin ? 'flex' : 'none';
+  switchTab('calendario');
+}
+
+// ---------- ADMIN SETUP (primeiro acesso, sem membros ainda) ----------
+function openAdminSetup(){
+  const pin = prompt("Digite o PIN de administrador(a):");
+  if(pin === null) return;
+  if(pin !== ADMIN_PIN){ alert("PIN incorreto."); return; }
+  const nome = prompt("Seu nome:");
+  if(!nome) return;
+  const telefone = prompt("Seu telefone com DDI e DDD (ex: 5511999999999):") || '';
+  sb.from('usuarios').insert({nome, telefone, admin:true, ativo:true, funcoes:[]}).select().then(({data,error})=>{
+    if(error){ alert("Erro: "+error.message); return; }
+    loadAll().then(()=>{ loginAs(data[0].id); });
+  });
+}
+
+// ---------- TABS ----------
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  const fab = document.getElementById('fabAdd');
+  fab.style.display = (name==='calendario' && state.usuario.admin) ? 'flex' : 'none';
+  if(name==='calendario') renderCalendario();
+  if(name==='escala') renderEscalaTab();
+  if(name==='frequencia') renderFrequencia();
+  if(name==='admin') renderAdmin();
+}
+
+function handleFab(){ openCultoForm(); }
+
+// ---------- HELPERS ----------
+function fmtData(dataStr){
+  const d = new Date(dataStr+'T12:00:00');
+  return d.toLocaleDateString('pt-BR',{weekday:'short', day:'2-digit', month:'short'}).replace('.','');
+}
+function proximosCultos(){
+  const hoje = new Date().toISOString().slice(0,10);
+  return state.cultos.filter(c=>c.data>=hoje).sort((a,b)=>a.data.localeCompare(b.data));
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+function closeSheet(){ document.getElementById('sheetOverlay').classList.remove('show'); }
+function openSheet(html){
+  document.getElementById('sheetContent').innerHTML = `<button class="close-x" onclick="closeSheet()">✕</button>` + html;
+  document.getElementById('sheetOverlay').classList.add('show');
+}
+
+// ---------- CALENDÁRIO ----------
+function renderCalendario(){
+  const list = proximosCultos();
+  const el = document.getElementById('calendarioList');
+  if(list.length===0){ el.innerHTML = `<div class="empty-note">Nenhum culto agendado ainda.</div>`; return; }
+  el.innerHTML = list.map(c=>{
+    const escaladosDoDia = state.escalas.filter(e=>e.culto_id===c.id);
+    return `
+    <div class="card culto-card">
+      <div class="culto-top">
+        <div>
+          <div class="culto-date">${fmtData(c.data)}</div>
+          <div class="culto-type">${c.tipo}</div>
+        </div>
+        <div class="culto-time">${c.horario?.slice(0,5)||''}</div>
+      </div>
+      ${c.observacoes ? `<div class="culto-obs">${c.observacoes}</div>` : ''}
+      ${(() => {
+        const d = state.disponibilidade.find(x=>x.culto_id===c.id && x.usuario_id===state.usuario.id);
+        const status = d ? d.status : null;
+        const totalAtivos = state.usuarios.filter(u=>u.ativo).length;
+        const respostas = state.disponibilidade.filter(x=>x.culto_id===c.id);
+        const disponiveis = respostas.filter(x=>x.status==='disponivel').length;
+        const talvez = respostas.filter(x=>x.status==='talvez').length;
+        const indisponiveis = respostas.filter(x=>x.status==='indisponivel').length;
+        const naoResponderam = Math.max(0, totalAtivos - respostas.length);
+
+        return `
+          <div class="availability-label">Sua disponibilidade</div>
+          <div class="status-row">
+            <button class="status-btn sim ${status==='disponivel'?'active':''}" onclick="setDisponibilidade('${c.id}','disponivel')">Disponível</button>
+            <button class="status-btn talvez ${status==='talvez'?'active':''}" onclick="setDisponibilidade('${c.id}','talvez')">Talvez</button>
+            <button class="status-btn nao ${status==='indisponivel'?'active':''}" onclick="setDisponibilidade('${c.id}','indisponivel')">Não</button>
+          </div>
+          ${state.usuario.admin ? `
+            <div class="availability-summary">
+              <span class="summary-disponivel">${disponiveis} disponíveis</span>
+              <span>·</span>
+              <span class="summary-talvez">${talvez} talvez</span>
+              <span>·</span>
+              <span class="summary-nao">${naoResponderam} não respondeu</span>
+            </div>
+          ` : ''}
+        `;
+      })()}
+      ${escaladosDoDia.length>0 ? `<div class="escala-list">${escaladosDoDia.map(e=>{
+        const u = state.usuarios.find(x=>x.id===e.usuario_id);
+        return `<span class="escala-tag ${e.usuario_id===state.usuario.id?'mine':''}"><span class="fn">${e.funcao}</span> ${u?u.nome:'?'}</span>`;
+      }).join('')}</div>` : `<div class="empty-note">Escala ainda não montada</div>`}
+      ${state.usuario.admin ? `<button class="btn ghost small" onclick="deleteCulto('${c.id}')">Excluir culto</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function openCultoForm(){
+  openSheet(`
+    <h3>Novo culto</h3>
+    <div class="field"><label>Data</label><input type="date" id="f_data"></div>
+    <div class="field"><label>Horário</label><input type="time" id="f_horario" value="19:30"></div>
+    <div class="field"><label>Tipo</label>
+      <select id="f_tipo">
+        <option>Culto Jovem</option>
+        <option>Culto de Celebração</option>
+        <option>Ensaio</option>
+        <option>Evento Especial</option>
+      </select>
+    </div>
+    <div class="field"><label>Observações (opcional)</label><textarea id="f_obs" placeholder="Tema, pauta, avisos..."></textarea></div>
+    <div class="sheet-actions">
+      <button class="btn block" onclick="salvarCulto()">Salvar culto</button>
+    </div>
+  `);
+}
+
+async function salvarCulto(){
+  const data = document.getElementById('f_data').value;
+  const horario = document.getElementById('f_horario').value;
+  const tipo = document.getElementById('f_tipo').value;
+  const observacoes = document.getElementById('f_obs').value;
+  if(!data){ alert("Escolha uma data."); return; }
+  const {error} = await sb.from('cultos').insert({data, horario, tipo, observacoes});
+  if(error){ alert("Erro: "+error.message); return; }
+  closeSheet();
+  await loadAll();
+  renderCalendario();
+  showToast("Culto adicionado");
+}
+
+async function deleteCulto(id){
+  if(!confirm("Excluir este culto e sua escala?")) return;
+  await sb.from('cultos').delete().eq('id', id);
+  await loadAll();
+  renderCalendario();
+  showToast("Culto excluído");
+}
+
+// ---------- DISPONIBILIDADE ----------
+
+// ---------- ESCALA ----------
+function renderEscalaTab(){
+  const list = proximosCultos();
+  const bar = document.getElementById('culto-select-bar-escala');
+  if(list.length===0){
+    bar.innerHTML='';
+    document.getElementById('escalaContent').innerHTML = `<div class="empty-note">Nenhum culto agendado ainda.</div>`;
+    return;
+  }
+  if(!state.escalaCultoId || !list.find(c=>c.id===state.escalaCultoId)) state.escalaCultoId = list[0].id;
+  bar.innerHTML = list.map(c=>`
+    <button class="${c.id===state.escalaCultoId?'active':''}" onclick="selecionarCultoEscala('${c.id}')">${fmtData(c.data)}</button>
+  `).join('');
+  renderEscalaConteudo();
+}
+function selecionarCultoEscala(id){ state.escalaCultoId = id; renderEscalaTab(); }
+
+function renderEscalaConteudo(){
+  const c = state.cultos.find(x=>x.id===state.escalaCultoId);
+  const el = document.getElementById('escalaContent');
+  if(!c){ el.innerHTML=''; return; }
+  const escalados = state.escalas.filter(e=>e.culto_id===c.id);
+
+  if(!state.usuario.admin){
+    el.innerHTML = `
+      <div class="card">
+        <div class="culto-type" style="margin-bottom:10px;">${c.tipo} · ${fmtData(c.data)}</div>
+        ${escalados.length>0 ? `<div class="escala-list">${escalados.map(e=>{
+          const u = state.usuarios.find(x=>x.id===e.usuario_id);
+          return `<span class="escala-tag ${e.usuario_id===state.usuario.id?'mine':''}"><span class="fn">${e.funcao}</span> ${u?u.nome:'?'}</span>`;
+        }).join('')}</div>` : `<div class="empty-note">Escala ainda não montada para este culto.</div>`}
+      </div>`;
+    return;
+  }
+
+  // Admin: monta escala
+  const ativos = state.usuarios.filter(u=>u.ativo);
+  el.innerHTML = `
+    <div class="card">
+      <div class="culto-type" style="margin-bottom:12px;">${c.tipo} · ${fmtData(c.data)}</div>
+      ${escalados.length>0 ? `<div class="escala-list" style="margin-bottom:14px;">${escalados.map(e=>{
+        const u = state.usuarios.find(x=>x.id===e.usuario_id);
+        return `<span class="escala-tag"><span class="fn">${e.funcao}</span> ${u?u.nome:'?'} <span class="rm" onclick="removerDaEscala('${e.id}')">✕</span></span>`;
+      }).join('')}</div>` : `<div class="empty-note" style="margin-bottom:14px;">Ninguém escalado ainda.</div>`}
+    </div>
+    <div class="section-label">Disponibilidade dos membros</div>
+    <div class="card">
+      ${ativos.map(u=>{
+        const d = state.disponibilidade.find(x=>x.culto_id===c.id && x.usuario_id===u.id);
+        const status = d ? d.status : 'semresposta';
+        const funcoesOpts = (u.funcoes && u.funcoes.length>0 ? u.funcoes : FUNCOES_PADRAO);
+        return `
+        <div class="assign-row">
+          <div class="assign-name"><span class="dot ${status}"></span>${u.nome}</div>
+          <div class="assign-controls">
+            <select id="fn_${u.id}">${funcoesOpts.map(f=>`<option>${f}</option>`).join('')}</select>
+            <button onclick="adicionarNaEscala('${u.id}')">+</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function adicionarNaEscala(usuarioId){
+  const funcao = document.getElementById('fn_'+usuarioId).value;
+  const {error} = await sb.from('escalas').insert({culto_id: state.escalaCultoId, usuario_id: usuarioId, funcao});
+  if(error){
+    if(error.code==='23505') alert("Essa pessoa já está escalada com essa função neste culto.");
+    else alert("Erro: "+error.message);
+    return;
+  }
+  await loadAll();
+  renderEscalaConteudo();
+  showToast("Adicionado à escala");
+}
+
+async function removerDaEscala(escalaId){
+  await sb.from('escalas').delete().eq('id', escalaId);
+  await loadAll();
+  renderEscalaConteudo();
+  showToast("Removido da escala");
+}
+
+// ---------- FREQUÊNCIA ----------
+function setFreqFilter(days){
+  state.freqDays = days;
+  document.querySelectorAll('.freq-filters button').forEach(b=>b.classList.toggle('active', Number(b.dataset.days)===days));
+  renderFrequencia();
+}
+function renderFrequencia(){
+  const el = document.getElementById('freqList');
+  let cultosValidos = state.cultos;
+  if(state.freqDays>0){
+    const limite = new Date();
+    limite.setDate(limite.getDate()-state.freqDays);
+    const limiteStr = limite.toISOString().slice(0,10);
+    cultosValidos = state.cultos.filter(c=>c.data>=limiteStr);
+  }
+  const cultoIds = new Set(cultosValidos.map(c=>c.id));
+  const contagem = {};
+  state.usuarios.filter(u=>u.ativo).forEach(u=>contagem[u.id]=0);
+  state.escalas.forEach(e=>{
+    if(cultoIds.has(e.culto_id) && contagem[e.usuario_id]!==undefined) contagem[e.usuario_id]++;
+  });
+  const ranking = Object.entries(contagem).sort((a,b)=>a[1]-b[1]);
+  const max = Math.max(1, ...ranking.map(r=>r[1]));
+  if(ranking.length===0){ el.innerHTML = `<div class="empty-note">Sem dados ainda.</div>`; return; }
+  el.innerHTML = ranking.map(([uid,count])=>{
+    const u = state.usuarios.find(x=>x.id===uid);
+    if(!u) return '';
+    return `
+    <div class="freq-row">
+      <div class="freq-name">${u.nome}</div>
+      <div class="freq-bar-track"><div class="freq-bar-fill" style="width:${(count/max*100)}%"></div></div>
+      <div class="freq-count">${count}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---------- ADMIN: MEMBROS ----------
+function renderAdmin(){
+  const el = document.getElementById('membrosList');
+  el.innerHTML = state.usuarios.map(u=>`
+    <div class="card">
+      <div class="culto-top">
+        <div>
+          <div class="culto-date" style="font-size:14px;">${u.nome} ${u.admin?'· admin':''}</div>
+          <div class="culto-type">${(u.funcoes||[]).join(', ')||'sem função definida'}</div>
+        </div>
+        <button class="btn ghost small" onclick="toggleAtivo('${u.id}', ${u.ativo})">${u.ativo?'Desativar':'Ativar'}</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openMembroForm(){
+  openSheet(`
+    <h3>Novo membro</h3>
+    <div class="field"><label>Nome</label><input id="m_nome" placeholder="Nome completo"></div>
+    <div class="field"><label>Telefone (WhatsApp, com DDI e DDD)</label><input id="m_tel" placeholder="5511999999999"></div>
+    <div class="field"><label>Funções (separe por vírgula)</label><input id="m_funcoes" placeholder="Vocal, Violão"></div>
+    <div class="sheet-actions">
+      <button class="btn block" onclick="salvarMembro()">Salvar membro</button>
+    </div>
+  `);
+}
+
+async function salvarMembro(){
+  const nome = document.getElementById('m_nome').value.trim();
+  const telefone = document.getElementById('m_tel').value.trim();
+  const funcoes = document.getElementById('m_funcoes').value.split(',').map(f=>f.trim()).filter(Boolean);
+  if(!nome){ alert("Digite o nome."); return; }
+  const {error} = await sb.from('usuarios').insert({nome, telefone, funcoes, ativo:true, admin:false});
+  if(error){ alert("Erro: "+error.message); return; }
+  closeSheet();
+  await loadAll();
+  renderAdmin();
+  showToast("Membro adicionado");
+}
+
+async function toggleAtivo(id, atual){
+  await sb.from('usuarios').update({ativo: !atual}).eq('id', id);
+  await loadAll();
+  renderAdmin();
+}
+
+init();
+</script>
+</body>
+</html>
