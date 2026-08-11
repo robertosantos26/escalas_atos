@@ -557,6 +557,58 @@ async function deleteCulto(id){
 }
 
 // ---------- DISPONIBILIDADE ----------
+  // ---------- DISPONIBILIDADE ----------
+
+async function setDisponibilidade(cultoId, status){
+  if(!state.usuario) return;
+
+  // Verifica se esse usuário já respondeu para esse culto
+  const existente = state.disponibilidade.find(
+    x => x.culto_id === cultoId && x.usuario_id === state.usuario.id
+  );
+
+  let error;
+
+  if(existente){
+    // Já respondeu: apenas altera o status
+    const resultado = await sb
+      .from('disponibilidade')
+      .update({ status })
+      .eq('id', existente.id);
+
+    error = resultado.error;
+
+  } else {
+    // Ainda não respondeu: cria a resposta
+    const resultado = await sb
+      .from('disponibilidade')
+      .insert({
+        culto_id: cultoId,
+        usuario_id: state.usuario.id,
+        status: status
+      });
+
+    error = resultado.error;
+  }
+
+  if(error){
+    console.error(error);
+    alert("Erro ao salvar disponibilidade: " + error.message);
+    return;
+  }
+
+  // Atualiza os dados do aplicativo
+  await loadAll();
+
+  // Atualiza o calendário
+  renderCalendario();
+
+  showToast(
+    status === 'disponivel' ? 'Você está disponível' :
+    status === 'talvez' ? 'Marcado como talvez' :
+    'Você marcou que não pode'
+  );
+}
 
 // ---------- ESCALA ----------
 function renderEscalaTab(){
