@@ -521,13 +521,12 @@ function openCultoForm(){
     <div class="field"><label>Data</label><input type="date" id="f_data"></div>
     <div class="field"><label>Horário</label><input type="time" id="f_horario" value="19:30"></div>
     <div class="field"><label>Tipo</label>
-      <select id="f_tipo">
-        <option>Culto Jovem</option>
-        <option>Culto de Celebração</option>
-        <option>Ensaio</option>
-        <option>Evento Especial</option>
-      </select>
-    </div>
+  <input
+    type="text"
+    id="f_tipo"
+    placeholder="Ex: Culto de Santa Ceia"
+  >
+</div>
     <div class="field"><label>Observações (opcional)</label><textarea id="f_obs" placeholder="Tema, pauta, avisos..."></textarea></div>
     <div class="sheet-actions">
       <button class="btn block" onclick="salvarCulto()">Salvar culto</button>
