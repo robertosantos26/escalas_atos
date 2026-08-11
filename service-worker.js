@@ -1,5 +1,4 @@
-self.addEventListener('push', function(event) {
-
+self.addEventListener('push', event => {
   let data = {
     title: 'Escalas do Louvor',
     body: 'Você tem uma nova atualização.',
@@ -9,48 +8,37 @@ self.addEventListener('push', function(event) {
   if (event.data) {
     try {
       data = event.data.json();
-    } catch (error) {
+    } catch {
       data.body = event.data.text();
     }
   }
 
-  const options = {
-    body: data.body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: [200, 100, 200],
-    data: {
-      url: data.url || '/'
-    }
-  };
-
   event.waitUntil(
-    self.registration.showNotification(
-      data.title || 'Escalas do Louvor',
-      options
-    )
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      vibrate: [200, 100, 200],
+      data: {
+        url: data.url || '/'
+      }
+    })
   );
-
 });
 
-
-self.addEventListener('notificationclick', function(event) {
-
+self.addEventListener('notificationclick', event => {
   event.notification.close();
 
-  const url =
-    event.notification.data?.url || '/';
+  const url = event.notification.data?.url || '/';
 
   event.waitUntil(
     clients.matchAll({
       type: 'window',
       includeUncontrolled: true
-    }).then(function(clientList) {
+    }).then(clientList => {
 
       for (const client of clientList) {
-
         if ('focus' in client) {
-
           client.focus();
 
           if ('navigate' in client) {
@@ -64,8 +52,6 @@ self.addEventListener('notificationclick', function(event) {
       if (clients.openWindow) {
         return clients.openWindow(url);
       }
-
     })
   );
-
 });
