@@ -21,8 +21,7 @@ self.addEventListener('push', function(event) {
     vibrate: [200, 100, 200],
     data: {
       url: data.url || '/'
-    },
-    requireInteraction: false
+    }
   };
 
   event.waitUntil(
@@ -39,7 +38,8 @@ self.addEventListener('notificationclick', function(event) {
 
   event.notification.close();
 
-  const url = event.notification.data?.url || '/';
+  const url =
+    event.notification.data?.url || '/';
 
   event.waitUntil(
     clients.matchAll({
@@ -50,6 +50,7 @@ self.addEventListener('notificationclick', function(event) {
       for (const client of clientList) {
 
         if ('focus' in client) {
+
           client.focus();
 
           if ('navigate' in client) {
@@ -58,7 +59,6 @@ self.addEventListener('notificationclick', function(event) {
 
           return;
         }
-
       }
 
       if (clients.openWindow) {
