@@ -873,8 +873,10 @@ function abrirRepertorioForm(cultoId){
       <textarea id="f_repertorio" rows="8" placeholder="Grande é o Senhor&#10;Digno é o Cordeiro&#10;Aleluia">${escapeHtml(atual)}</textarea>
     </div>
     <div class="sheet-actions">
-      <button class="btn block" onclick="salvarRepertorio('${cultoId}')">Salvar repertório</button>
-    </div>
+  <button class="btn block" onclick="salvarRepertorio('${cultoId}', true)">
+    Salvar e avisar escalados
+  </button>
+</div>
   `);
 }
 
