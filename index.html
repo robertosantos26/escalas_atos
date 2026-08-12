@@ -906,6 +906,34 @@ async function salvarRepertorio(cultoId, enviarNotificacao = false){
     await enviarNotificacaoRepertorio(cultoId);
   }
 }
+  async function enviarNotificacaoRepertorio(cultoId){
+  try{
+    showToast("Enviando notificações...");
+
+    const { data, error } = await sb.functions.invoke(
+      'notificar-repertorio',
+      {
+        body: {
+          culto_id: cultoId
+        }
+      }
+    );
+
+    if(error){
+      console.error("Erro ao enviar notificações:", error);
+      alert("O repertório foi salvo, mas houve um erro ao enviar as notificações.");
+      return;
+    }
+
+    console.log("Resposta da notificação:", data);
+
+    showToast("Repertório enviado aos escalados");
+
+  }catch(error){
+    console.error(error);
+    alert("O repertório foi salvo, mas não foi possível enviar as notificações.");
+  }
+}
 
 // ---------- DISPONIBILIDADE ----------
   // ---------- DISPONIBILIDADE ----------
