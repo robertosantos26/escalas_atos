@@ -862,39 +862,81 @@ async function deleteCulto(id){
 }
 
 // ---------- REPERTÓRIO ----------
+
 function abrirRepertorioForm(cultoId){
   if(!state.usuario.admin) return;
-  const c = state.cultos.find(x=>x.id===cultoId);
+
+  const c = state.cultos.find(x => x.id === cultoId);
   const atual = c ? (c.repertorio || '') : '';
+
   openSheet(`
-    <h3>Repertório · ${c ? c.tipo : ''}</h3>
+    <h3>Repertório · ${c ? escapeHtml(c.tipo) : ''}</h3>
+
     <div class="field">
       <label>Hinos (um por linha)</label>
-      <textarea id="f_repertorio" rows="8" placeholder="Grande é o Senhor&#10;Digno é o Cordeiro&#10;Aleluia">${escapeHtml(atual)}</textarea>
+
+      <textarea
+        id="f_repertorio"
+        rows="8"
+        placeholder="Grande é o Senhor&#10;Digno é o Cordeiro&#10;Aleluia"
+      >${escapeHtml(atual)}</textarea>
     </div>
+
     <div class="sheet-actions">
-  <button class="btn block" onclick="salvarRepertorio('${cultoId}', true)">
-    Salvar e avisar escalados
-  </button>
-</div>
+      <button
+        class="btn block"
+        onclick="salvarRepertorio('${cultoId}', true)"
+      >
+        Salvar e avisar escalados
+      </button>
+    </div>
   `);
 }
 
 
+async function salvarRepertorio(cultoId, enviarNotificacao = true){
+
+  const campo = document.getElementById('f_repertorio');
+
+  if(!campo){
+    alert('Campo do repertório não encontrado.');
+    return;
+  }
+
+  const repertorio = campo.value.trim();
+
+  const { error } = await sb
+    .from('cultos')
+    .update({
+      repertorio: repertorio
+    })
+    .eq('id', cultoId);
+
+  if(error){
+    console.error('Erro ao salvar repertório:', error);
+    alert('Erro ao salvar repertório: ' + error.message);
+    return;
+  }
+
   closeSheet();
 
   await loadAll();
+
   renderCalendario();
 
-  showToast("Repertório salvo");
+  showToast('Repertório salvo');
 
   if(enviarNotificacao){
     await enviarNotificacaoRepertorio(cultoId);
   }
 }
-  async function enviarNotificacaoRepertorio(cultoId){
+
+
+async function enviarNotificacaoRepertorio(cultoId){
+
   try{
-    showToast("Enviando notificações...");
+
+    showToast('Enviando notificações...');
 
     const { data, error } = await sb.functions.invoke(
       'notificar-repertorio',
@@ -906,18 +948,36 @@ function abrirRepertorioForm(cultoId){
     );
 
     if(error){
-      console.error("Erro ao enviar notificações:", error);
-      alert("O repertório foi salvo, mas houve um erro ao enviar as notificações.");
+
+      console.error(
+        'Erro ao enviar notificações:',
+        error
+      );
+
+      alert(
+        'O repertório foi salvo, mas houve um erro ao enviar as notificações.'
+      );
+
       return;
     }
 
-    console.log("Resposta da notificação:", data);
+    console.log(
+      'Resposta da notificação:',
+      data
+    );
 
-    showToast("Repertório enviado aos escalados");
+    showToast('Repertório enviado aos escalados');
 
   }catch(error){
-    console.error(error);
-    alert("O repertório foi salvo, mas não foi possível enviar as notificações.");
+
+    console.error(
+      'Erro inesperado ao enviar notificações:',
+      error
+    );
+
+    alert(
+      'O repertório foi salvo, mas não foi possível enviar as notificações.'
+    );
   }
 }
 
