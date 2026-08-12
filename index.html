@@ -758,7 +758,9 @@ function renderCalendario(){
       ${c.observacoes ? `<div class="culto-obs">${c.observacoes}</div>` : ''}
       ${(() => {
         const hinos = (c.repertorio || '').split('\n').map(x=>x.trim()).filter(Boolean);
-        if(hinos.length===0 && !state.usuario.admin) return '';
+
+if(!state.usuario.admin && !euEstouEscalado) return '';
+if(hinos.length===0 && !state.usuario.admin) return '';
         return `
           <div class="repertorio-block">
             <div class="repertorio-head">
