@@ -880,20 +880,6 @@ function abrirRepertorioForm(cultoId){
   `);
 }
 
-async function salvarRepertorio(cultoId, enviarNotificacao = false){
-  if(!state.usuario.admin) return;
-
-  const texto = document.getElementById('f_repertorio').value.trim();
-
-  const { error } = await sb
-    .from('cultos')
-    .update({ repertorio: texto })
-    .eq('id', cultoId);
-
-  if(error){
-    alert("Erro ao salvar repertório: " + error.message);
-    return;
-  }
 
   closeSheet();
 
