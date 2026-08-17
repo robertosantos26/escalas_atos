@@ -891,8 +891,22 @@ async function salvarCulto(){
   const observacoes = document.getElementById('f_obs').value;
   const repertorio = document.getElementById('f_repertorio_novo').value;
   if(!data){ alert("Escolha uma data."); return; }
-  const {error} = await sb.from('cultos').insert({data, horario, tipo, observacoes, repertorio});
-  if(error){ alert("Erro: "+error.message); return; }
+const { data: novoCulto, error } = await sb
+  .from('cultos')
+  .insert({
+    data,
+    horario,
+    tipo,
+    observacoes,
+    repertorio
+  })
+  .select()
+  .single();
+
+if(error){
+  alert("Erro: " + error.message);
+  return;
+}  if(error){ alert("Erro: "+error.message); return; }
   closeSheet();
   await loadAll();
   renderCalendario();
