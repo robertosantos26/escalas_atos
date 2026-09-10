@@ -1,0 +1,19 @@
+{
+  "name": "whatsapp-notifier",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Worker que envia notificacoes do Escala Grupo Atos via WhatsApp pessoal, usando Baileys + Supabase, rodado pelo GitHub Actions.",
+  "scripts": {
+    "setup": "node scripts/setup-session.js",
+    "send": "node src/send-pending.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "@whiskeysockets/baileys": "^6.7.9",
+    "archiver": "^8.0.0",
+    "dotenv": "^16.4.5",
+    "pino": "^9.4.0",
+    "qrcode-terminal": "^0.12.0",
+    "unzipper": "^0.12.5"
+  }
+}
