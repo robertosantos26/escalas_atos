@@ -1,10 +1,12 @@
 const { createClient } = require('@supabase/supabase-js');
-const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const unzipper = require('unzipper');
+const archiver = require('archiver');
 
 const BUCKET = 'whatsapp-session';
 const FILE_NAME = 'session.zip';
+
 const ROOT = path.join(__dirname, '..', '..');
 const LOCAL_ZIP = path.join(ROOT, 'session.zip');
 const AUTH_DIR = path.join(ROOT, 'auth_info_baileys');
@@ -46,9 +48,12 @@ async function downloadSession() {
 
   fs.mkdirSync(AUTH_DIR, { recursive: true });
 
-  execSync(
-    `powershell -NoProfile -Command "Expand-Archive -Path '${LOCAL_ZIP}' -DestinationPath '${AUTH_DIR}' -Force"`
-  );
+  console.log('Descompactando sessao...');
+
+  await fs
+    .createReadStream(LOCAL_ZIP)
+    .pipe(unzipper.Extract({ path: AUTH_DIR }))
+    .promise();
 
   return true;
 }
@@ -62,9 +67,20 @@ async function uploadSession() {
 
   console.log('Compactando sessao...');
 
-  execSync(
-    `powershell -NoProfile -Command "Compress-Archive -Path '${AUTH_DIR}\\*' -DestinationPath '${LOCAL_ZIP}' -Force"`
-  );
+  await new Promise((resolve, reject) => {
+    const output = fs.createWriteStream(LOCAL_ZIP);
+    const archive = archiver('zip', {
+      zlib: { level: 9 },
+    });
+
+    output.on('close', resolve);
+    archive.on('error', reject);
+
+    archive.pipe(output);
+    archive.directory(AUTH_DIR, false);
+
+    archive.finalize();
+  });
 
   console.log('Enviando sessao para o Supabase...');
 
