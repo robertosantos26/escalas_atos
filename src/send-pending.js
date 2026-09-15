@@ -32,6 +32,52 @@ async function fetchPendingMessages() {
   return data;
 }
 
+async function fetchFreshQueueMessage(id) {
+  const { data, error } = await supabase
+    .from('whatsapp_queue')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+async function revalidarAntesDoEnvio(msg) {
+  const usuarioId = msg.usuario_id || msg.user_id || msg.membro_id;
+  const cultoId = msg.culto_id || msg.evento_id;
+
+  // Se a fila tiver os IDs, consulta a resposta atual imediatamente antes do envio.
+  if (!usuarioId || !cultoId) return false;
+
+  const { data, error } = await supabase
+    .from('disponibilidade')
+    .select('id,status')
+    .eq('usuario_id', usuarioId)
+    .eq('culto_id', cultoId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) return false;
+
+  // A pessoa já respondeu. Não envia uma cobrança que ficou obsoleta.
+  const { error: cancelError } = await supabase
+    .from('whatsapp_queue')
+    .update({
+      status: 'cancelado',
+      enviado_em: new Date().toISOString(),
+      erro: `Cancelado: usuario ja respondeu (${data.status})`,
+    })
+    .eq('id', msg.id)
+    .eq('status', 'pendente');
+
+  if (cancelError) throw cancelError;
+
+  console.log(`CANCELADO -> ${msg.id}: usuario ja respondeu (${data.status})`);
+  return true;
+}
+
 async function markMessage(id, status, errorMsg = null) {
   const { error } = await supabase
     .from('whatsapp_queue')
@@ -84,11 +130,23 @@ async function main() {
 
         for (const msg of pending) {
           try {
-            const numero = String(msg.telefone).replace(/\D/g, '');
+            // Busca novamente a fila antes de enviar para evitar trabalhar
+            // com uma mensagem que já mudou desde a primeira consulta.
+            const atual = await fetchFreshQueueMessage(msg.id);
+
+            if (!atual || atual.status !== 'pendente') {
+              console.log(`IGNORADO -> ${msg.id}: mensagem nao esta mais pendente.`);
+              continue;
+            }
+
+            // CONSULTA FINAL AO SUPABASE imediatamente antes do envio.
+            if (await revalidarAntesDoEnvio(atual)) continue;
+
+            const numero = String(atual.telefone).replace(/\D/g, '');
 
             console.log('----------------------------------------');
             console.log(`Numero: ${numero}`);
-            console.log(`Mensagem: ${msg.mensagem}`);
+            console.log(`Mensagem: ${atual.mensagem}`);
             console.log('Consultando numero no WhatsApp...');
 
             const resultado = await sock.onWhatsApp(numero);
@@ -112,7 +170,7 @@ async function main() {
             console.log('Enviando mensagem...');
 
             const resposta = await sock.sendMessage(jid, {
-              text: msg.mensagem,
+              text: atual.mensagem,
             });
 
             console.log('RETORNO DO sendMessage:');
@@ -123,7 +181,7 @@ async function main() {
 
             await new Promise((resolve) => setTimeout(resolve, 5000));
 
-            await markMessage(msg.id, 'enviado');
+            await markMessage(atual.id, 'enviado');
             console.log(`PROCESSADO -> ${numero}`);
           } catch (err) {
             console.error(`FALHA -> ${msg.telefone}:`, err.message);
