@@ -2,7 +2,7 @@ name: Enviar notificacoes WhatsApp
 
 on:
   schedule:
-    - cron: '0 12 * * *'   # todo dia as 12:00 UTC (09:00 no horario de Brasilia) - ajuste como quiser
+    - cron: '*/15 * * * *'   # a cada 15 minutos
   workflow_dispatch: {}    # permite rodar manualmente pela aba Actions do GitHub
 
 jobs:
