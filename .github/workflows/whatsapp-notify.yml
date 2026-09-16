@@ -5,6 +5,11 @@ on:
     - cron: '*/15 * * * *'   # a cada 15 minutos
   workflow_dispatch: {}    # permite rodar manualmente pela aba Actions do GitHub
 
+# Impede duas execuções simultâneas de processarem a mesma fila.
+concurrency:
+  group: whatsapp-notify
+  cancel-in-progress: false
+
 jobs:
   send:
     runs-on: ubuntu-latest
