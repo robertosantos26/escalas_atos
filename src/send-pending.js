@@ -43,39 +43,118 @@ async function fetchFreshQueueMessage(id) {
   return data;
 }
 
-async function revalidarAntesDoEnvio(msg) {
-  const usuarioId = msg.usuario_id || msg.user_id || msg.membro_id;
-  const cultoId = msg.culto_id || msg.evento_id;
+function normalizarStatus(status) {
+  return String(status || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
 
-  // Se a fila tiver os IDs, consulta a resposta atual imediatamente antes do envio.
-  if (!usuarioId || !cultoId) return false;
+function statusConfirmado(status) {
+  return [
+    'sim',
+    'confirmado',
+    'confirmada',
+    'confirma',
+    'presente',
+    'vou',
+    'confirmou',
+  ].includes(normalizarStatus(status));
+}
 
-  const { data, error } = await supabase
-    .from('disponibilidade')
-    .select('id,status')
-    .eq('usuario_id', usuarioId)
-    .eq('culto_id', cultoId)
-    .maybeSingle();
-
-  if (error) throw error;
-
-  if (!data) return false;
-
-  // A pessoa já respondeu. Não envia uma cobrança que ficou obsoleta.
-  const { error: cancelError } = await supabase
+async function cancelarMensagem(id, motivo) {
+  const { error } = await supabase
     .from('whatsapp_queue')
     .update({
       status: 'cancelado',
       enviado_em: new Date().toISOString(),
-      erro: `Cancelado: usuario ja respondeu (${data.status})`,
+      erro: motivo,
     })
-    .eq('id', msg.id)
+    .eq('id', id)
     .eq('status', 'pendente');
 
-  if (cancelError) throw cancelError;
+  if (error) throw error;
+  console.log(`CANCELADO -> ${id}: ${motivo}`);
+}
 
-  console.log(`CANCELADO -> ${msg.id}: usuario ja respondeu (${data.status})`);
-  return true;
+async function revalidarAntesDoEnvio(msg) {
+  const usuarioId = msg.usuario_id || msg.user_id || msg.membro_id || msg.member_id;
+  const cultoId = msg.culto_id || msg.evento_id || msg.event_id;
+
+  // Sem os IDs não é seguro tentar adivinhar a disponibilidade.
+  // A proteção por duplicidade abaixo continua ativa.
+  if (!usuarioId || !cultoId) return false;
+
+  // A estrutura pode usar usuario_id ou membro_id. Tentamos as duas formas.
+  const consultas = [
+    ['usuario_id', usuarioId],
+    ['membro_id', usuarioId],
+  ];
+
+  for (const [campoUsuario, valorUsuario] of consultas) {
+    const { data, error } = await supabase
+      .from('disponibilidade')
+      .select('id,status,updated_at,created_at')
+      .eq(campoUsuario, valorUsuario)
+      .eq('culto_id', cultoId)
+      .order('updated_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      // Se a coluna não existir, tenta a próxima nomenclatura.
+      if (/column|does not exist|schema cache/i.test(error.message || '')) {
+        continue;
+      }
+      throw error;
+    }
+
+    if (!data) continue;
+
+    if (statusConfirmado(data.status)) {
+      await cancelarMensagem(
+        msg.id,
+        `Cancelado: usuario ja confirmou (${data.status})`
+      );
+      return true;
+    }
+
+    return false;
+  }
+
+  return false;
+}
+
+async function existeDuplicataRecente(msg) {
+  const telefone = String(msg.telefone || '').replace(/\D/g, '');
+  const mensagem = String(msg.mensagem || '').trim();
+
+  if (!telefone || !mensagem) return false;
+
+  // Impede que uma nova execução da automação envie novamente a mesma mensagem
+  // caso o gerador da fila tenha criado outra linha para a mesma pessoa.
+  const limite = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from('whatsapp_queue')
+    .select('id,created_at,enviado_em')
+    .eq('status', 'enviado')
+    .eq('telefone', msg.telefone)
+    .eq('mensagem', msg.mensagem)
+    .gte('enviado_em', limite)
+    .neq('id', msg.id)
+    .limit(1);
+
+  if (error) {
+    // Algumas bases podem não ter enviado_em preenchido em registros antigos.
+    // Nesse caso não bloqueamos o envio por causa da proteção secundária.
+    console.warn('Nao foi possivel verificar duplicidade:', error.message);
+    return false;
+  }
+
+  return Array.isArray(data) && data.length > 0;
 }
 
 async function markMessage(id, status, errorMsg = null) {
@@ -130,8 +209,7 @@ async function main() {
 
         for (const msg of pending) {
           try {
-            // Busca novamente a fila antes de enviar para evitar trabalhar
-            // com uma mensagem que já mudou desde a primeira consulta.
+            // Busca novamente a fila imediatamente antes de processar.
             const atual = await fetchFreshQueueMessage(msg.id);
 
             if (!atual || atual.status !== 'pendente') {
@@ -139,8 +217,17 @@ async function main() {
               continue;
             }
 
-            // CONSULTA FINAL AO SUPABASE imediatamente antes do envio.
+            // 1) Reconsulta a disponibilidade atual no Supabase.
             if (await revalidarAntesDoEnvio(atual)) continue;
+
+            // 2) Impede reenvio da mesma mensagem em duplicidade.
+            if (await existeDuplicataRecente(atual)) {
+              await cancelarMensagem(
+                atual.id,
+                'Cancelado: mesma mensagem ja foi enviada para este numero nas ultimas 24h'
+              );
+              continue;
+            }
 
             const numero = String(atual.telefone).replace(/\D/g, '');
 
