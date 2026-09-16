@@ -43,26 +43,6 @@ async function fetchFreshQueueMessage(id) {
   return data;
 }
 
-function normalizarStatus(status) {
-  return String(status || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
-}
-
-function statusConfirmado(status) {
-  return [
-    'sim',
-    'confirmado',
-    'confirmada',
-    'confirma',
-    'presente',
-    'vou',
-    'confirmou',
-  ].includes(normalizarStatus(status));
-}
-
 async function cancelarMensagem(id, motivo) {
   const { error } = await supabase
     .from('whatsapp_queue')
@@ -113,15 +93,15 @@ async function revalidarAntesDoEnvio(msg) {
 
     if (!data) continue;
 
-    if (statusConfirmado(data.status)) {
-      await cancelarMensagem(
-        msg.id,
-        `Cancelado: usuario ja confirmou (${data.status})`
-      );
-      return true;
-    }
-
-    return false;
+    // Qualquer registro de disponibilidade significa que a pessoa já respondeu
+    // ao culto. Isso vale para SIM, NÃO e TALVEZ.
+    // Portanto, depois que houver uma resposta, nenhum novo lembrete é enviado
+    // para esse mesmo usuário nesse mesmo culto.
+    await cancelarMensagem(
+      msg.id,
+      `Cancelado: usuario ja respondeu (${data.status || 'status nao informado'})`
+    );
+    return true;
   }
 
   return false;
@@ -218,6 +198,7 @@ async function main() {
             }
 
             // 1) Reconsulta a disponibilidade atual no Supabase.
+            // Qualquer resposta (SIM, NÃO ou TALVEZ) cancela o lembrete.
             if (await revalidarAntesDoEnvio(atual)) continue;
 
             // 2) Impede reenvio da mesma mensagem em duplicidade.
